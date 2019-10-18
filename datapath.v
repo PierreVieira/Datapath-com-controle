@@ -1,7 +1,11 @@
 module datapath(clock, reset);
 	input reset, clock;
 	
-	//Bloco PC onde começa o caminho de dados
+	wire RegWrite, Jump, ALUsrc, MemWrite, MemToReg, MemRead, Branch, RegDst;
+	wire [31:0]saida_mux_data_memory;
+	wire [31:0] saida_ultimo_mux;
+	
+	//Bloco PC onde comeÃ§a o caminho de dados
 	wire [31:0]saida_instrucao;
 	PC BLOCO_0(saida_ultimo_mux, saida_instrucao, clock, reset);
 	
@@ -9,7 +13,7 @@ module datapath(clock, reset);
 	wire [31:0]saida_addPc;
 	somador BLOCO_1(saida_instrucao, 32'b00000000000000000000000000000100, saida_addPc);
 	
-	//Bloco que divide a instrução do PC
+	//Bloco que divide a instruÃ§Ã£o do PC
 	wire[31:0]saida_adress;
 	instruction_memory BLOCO_2(saida_instrucao, saida_adress);
 	
@@ -21,12 +25,12 @@ module datapath(clock, reset);
 	wire[31:0] Data1, Data2;
 	registers BLOCO_3 (saida_adress[25:21], saida_adress[20:16], saida_mux_antBlocoReg, saida_mux_data_memory, Regwrite, Data1, Data2 , clock );
 	
-	//Extende o sinal da instrução
+	//Extende o sinal da instruÃ§Ã£o
 	wire [31:0]saida_extensor;
 	extensor BLOCO_5(saida_adress[15:0], saida_extensor);
 	
 	//Controle Geral !!!!!
-	wire RegWrite, Jump, ALUsrc, MemWrite, MemToReg, MemRead, Branch, RegDst;
+	
 	wire [1:0] ALUop;
 	controle BLOCO_6(saida_adress[31:26], RegWrite, Jump, ALUsrc, MemWrite, MemToReg, MemRead, Branch, RegDst, ALUop);
 	
@@ -48,7 +52,7 @@ module datapath(clock, reset);
 	data_memory BLOCO_10(saida_alu_result, Data2, MemWrite, clock, MemRead );
 	
 	//Mux depois do data memory
-	wire [31:0]saida_mux_data_memory;
+	
 	mux2_1 BLOCO_11(saida_Read_data, saida_alu_result, MemToReg, saida_mux_data_memory);
 	
 	// AND
@@ -70,8 +74,8 @@ module datapath(clock, reset);
 	wire [31:0]saida_penult_mux;
 	mux2_1 BLOCO_15(saida_addPc, saida_add_Alu_result, AND, saida_penult_mux);
 	
-	//Último mux superior
-	wire [31:0] saida_ultimo_mux;
+	//Ãltimo mux superior
+	
 	mux2_1 BLOCO_16(saida_shitf_Primeiro, saida_penult_mux, Jump, saida_ultimo_mux);
 	
 	endmodule 
