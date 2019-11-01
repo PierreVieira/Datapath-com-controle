@@ -1,81 +1,92 @@
 module datapath(clock, reset);
 	input reset, clock;
 	
-	wire RegWrite, Jump, ALUsrc, MemWrite, MemToReg, MemRead, Branch, RegDst;
-	wire [31:0]saida_mux_data_memory;
-	wire [31:0] saida_ultimo_mux;
+	//wire [31:0]saida_mux_data_memory;
 	
-	//Bloco PC onde comeÃ§a o caminho de dados
+	wire [4:0]saida_mux_1;
+	wire [3:0]saida_alu_control;
 	wire [31:0]saida_instrucao;
-	PC BLOCO_0(saida_ultimo_mux, saida_instrucao, clock, reset);
+	wire [1:0] alu_Op;
+	wire regDst, jump, branch, mem_Write, aluSrc, regWrite, memRead;
+	//controle(entrada,RegWrite,Jump,ALUsrc,MemWrite,MemToReg,MemRead,Branch,RegDst,ALUop);
+	controle BLOCO_CONTROLE(saida_instrucao[31:26], regWrite, jump, aluSrc, memWrite, memToReg, mem_Read, branch, regDst, alu_Op);
 	
-	//add depois do PC
-	wire [31:0]saida_addPc;
-	somador BLOCO_1(saida_instrucao, 32'b00000000000000000000000000000100, saida_addPc);
 	
-	//Bloco que divide a instruÃ§Ã£o do PC
-	wire[31:0]saida_adress;
-	instruction_memory BLOCO_2(saida_instrucao, saida_adress);
+	wire [31:0]saida_PC, saida_mux_5;
+	//PC(entrada_instrucao, saida_instrucao, clock, reset);
+	PC BLOCO_PC(saida_mux_5, saida_PC, clock, reset);
 	
-	// Mux entre instruction memory e banco de registradores
-	wire [4:0] saida_mux_antBlocoReg;
-	mux2_1 BLOCO_4(saida_adress[20:16], saida_adress[15:11],RegDst, saida_mux_antBlocoReg);
+	//instruction_memory(input [4:0] readAddress,output [31:0] instruction);
+	instruction_memory BLOCO_Inst(saida_PC[6:2], saida_instrucao);
 	
-	//Banco de Registradores
-	wire[31:0] Data1, Data2;
-	registers BLOCO_3 (saida_adress[25:21], saida_adress[20:16], saida_mux_antBlocoReg, saida_mux_data_memory, Regwrite, Data1, Data2 , clock );
+	wire [31:0]saida_add_1;
+	//somador(a, b, s);
+	somador BLOCO_ADD_1(saida_PC, 4, saida_add_1);
 	
-	//Extende o sinal da instruÃ§Ã£o
+	wire [31:0]saida_mux_3;
+	wire[31:0] data1, data2;
+	//registers (Read1, Read2, WriteReg, WriteData, RegWrite, Data1, Data2, clock);
+	registers BLOCO_REG(saida_instrucao[25:21], saida_instrucao[20:16], saida_mux_1, saida_mux_3, regWrite, data1, data2, clock);
+	
+	
+	//mux2_1(a, b, control, S);
+	mux2_1 BLOCO_MUX_1({27'b0, saida_instrucao[20:16]}, {27'b0, saida_instrucao[15:11]}, regDst, saida_mux_1);
+	
 	wire [31:0]saida_extensor;
-	extensor BLOCO_5(saida_adress[15:0], saida_extensor);
+	//extensor(input [15:0]entrada, output [31:0]saida);
+	extensor BLOCO_EXT(saida_instrucao[15:0], saida_extensor);
 	
-	//Controle Geral !!!!!
+	wire [31:0]saida_mux_2;
+	mux2_1 BLOCO_MUX_2( data2, saida_extensor, aluSrc, saida_mux_2);
 	
-	wire [1:0] ALUop;
-	controle BLOCO_6(saida_adress[31:26], RegWrite, Jump, ALUsrc, MemWrite, MemToReg, MemRead, Branch, RegDst, ALUop);
-	
-	//Mux que fica entre o banco de registradores e o ALU que tem o Zero
-	wire [31:0]saida_mux_DepBlocoReg;
-	mux2_1 BLOCO_7(Data2, saida_extensor, ALusrc, saida_mux_DepBlocoReg);
-	
-	//Bloco Alu Control
-	wire [3:0]saida_ALU_control;
-	AluControl BLOCO_8(ALUop, saida_adress[5:0], saida_ALU_control);
-	
-	//Bloco da ALU normal que tem o zero
 	wire [31:0]saida_alu_result;
-	wire zero;
-	ula BLOCO_9(saida_ALU_control, Data1, saida_mux_DepBlocoReg, saida_alu_result,zero);
+	wire saida_zero;
+	//ula(ALUctl, A, B, ALUOut, Zero);
+	ula BLOCO_ULA(saida_alu_control, data1, saida_mux_2, saida_alu_result, saida_zero);
 	
-	//data memory
-	wire [31:0]saida_Read_data;
-	data_memory BLOCO_10(saida_alu_result, Data2, MemWrite, clock, MemRead );
+	//AluControl(ALUOP,instruction,saida);
+	AluControl BLOCO_ALU_CONTROL(alu_Op, saida_instrucao[5:0], saida_alu_control);
 	
-	//Mux depois do data memory
+	wire [31:0]saida_data_memory;
+	//data_memory (addr, data, wr_en, read_en, Clock, q);
+	data_memory BLOCO_DAT_MEMORY(saida_alu_result, data2, mem_Write, mem_Read, clock, saida_data_memory);
 	
-	mux2_1 BLOCO_11(saida_Read_data, saida_alu_result, MemToReg, saida_mux_data_memory);
 	
-	// AND
-	wire AND = Branch & zero;
+	//mux2_1(a, b, control, S);
+	mux2_1 BLOCO_MUX_3( saida_alu_result, saida_data_memory, memToReg, saida_mux_3);
+	//assign saida_mux_3 = (mem_To_Reg)? saida_data_memory : saida_alu_result;//teste 
+	//assign saida_mux_3 = saida_alu_result;
+
+	wire [27:0]saida_shitf_left_1;
+	//shift_left2(entrada, saida);
+	shift_left2 BLOCO_SHITF_1(saida_instrucao[25:0], saida_shitf_left_1);
 	
-	//Primeiro shift 
-	wire [31:0]saida_shitf_Primeiro;
-	shift_left2 BLOCO_12(saida_adress[25:0], saida_shitf_Primeiro);
+	wire [31:0]jump_adr;
+	assign jump_adr = {saida_add_1[31:28], saida_shitf_left_1};
 	
-	//Segundo shifit
-	wire [31:0]saida_shitf_Segundo;
-	shift_left2 BLOCO_13(saida_extensor, saida_shitf_Segundo);
 	
-	//ALU result depois do segundo shift 
-	wire [31:0]saida_add_Alu_result;
-	somador BLOCO_14(saida_addPc, saida_shitf_Segundo, saida_add_Alu_result);
+	wire [31:0]saida_shitf_left_2;
+	//shift_left2(entrada, saida);
+	shift_left2 BLOCO_SHITF_2(saida_extensor, saida_shitf_left_2);
 	
-	//penultimo mux superior
-	wire [31:0]saida_penult_mux;
-	mux2_1 BLOCO_15(saida_addPc, saida_add_Alu_result, AND, saida_penult_mux);
 	
-	//Ãltimo mux superior
+	wire [31:0]saida_add_2;
+	//somador(a, b, s);
+	somador BLOCO_ADD_2(saida_add_1, saida_shitf_left_2, saida_add_2);
 	
-	mux2_1 BLOCO_16(saida_shitf_Primeiro, saida_penult_mux, Jump, saida_ultimo_mux);
+	//AND
+	wire saida_and;
+	assign saida_and = branch & saida_zero;
+	
+	wire [31:0]saida_mux_4;
+	//mux2_1(a, b, control, S);
+	mux2_1 BLOCO_MUX_4(saida_add_1, saida_add_2, saida_and, saida_mux_4);
+	
+	//mux2_1(a, b, control, S);
+	mux2_1 BLOCO_MUC_5(saida_mux_4, jump_adr, jump, saida_mux_5);
+	
+	
+	
+	//mem_Read foi usado como saida do data memoru (PODE DAR MERDA AQUIII !!!!!!!!!!!!!)
 	
 	endmodule 
