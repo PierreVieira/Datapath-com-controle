@@ -9,15 +9,23 @@ wire [7:0]aux ={ALUOP,instruction};
 always@(*)begin
 
 	case(aux)
-		8'b00xxxxxx : saida = 4'b0010;
-		8'bx1xxxxxx : saida = 4'b0110;
-		8'b1xxx0000 : saida = 4'b0010;
-		8'b1xxx0010 : saida = 4'b0110;
-		8'b1xxx0100 : saida = 4'b0000;
-		8'b1xxx0101 : saida = 4'b0001;
-		8'b1xxx1010 : saida = 4'b0111;
+		8'b10100000 : saida = 4'b0010; //add
+		//8'b10100000 : saida = 4'b0010; adicionar addi
+		8'b10100010 : saida = 4'b0110; //sub
+		8'b10100100 : saida = 4'b0000; //and
+		8'b10100101 : saida = 4'b0001; //or
+		8'b10101010 : saida = 4'b0111; //slt
+		//8'b00XXXXXX : saida = 4'b0010;
+		//8'b01XXXXXX : saida = 4'b0110;
+
 	
 	endcase
+
+	case(ALUOP)
+		2'b00 : saida = 4'b0010;
+		2'b01 : saida = 4'b0110;
+	endcase
+
 
 end
 
