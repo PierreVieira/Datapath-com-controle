@@ -1,7 +1,7 @@
-module data_memory (addr, data, wr_en, Clock, q);
+module data_memory (addr, data, wr_en, read_en, Clock, q);
   input [31:0] addr; 
   input [31:0] data;
-  input wr_en, Clock;
+  input wr_en, Clock, read_en;
   output [31:0] q;
 
   reg [31:0] Mem [0:31];
@@ -13,10 +13,11 @@ module data_memory (addr, data, wr_en, Clock, q);
       Mem[i] = 32'b0;
   end
 
-  assign q = Mem[addr];
+  assign q = (read_en)? Mem[addr]:32'b0;
 
   always @(posedge Clock)
     begin
-      if (wr_en) Mem[addr] = data;
+      if (wr_en) 
+		Mem[addr] <= data;
     end
 endmodule 
