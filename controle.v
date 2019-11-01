@@ -13,7 +13,7 @@ always@(*)begin
 						RegWrite <= 1;
 						ALUsrc   <= 0;
 						MemWrite <= 0;
-						ALUop    = 2'b11;
+						ALUop    = 2'b10;
 						MemToReg <= 0;
 						MemRead  <= 0;
 						Branch   <= 0;
