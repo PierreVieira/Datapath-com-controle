@@ -5,10 +5,14 @@ module registers (Read1, Read2, WriteReg, WriteData, RegWrite, Data1, Data2, clo
 	clock; // o clock para acionar a escrita
 	output [31:0] Data1, Data2; // os valores dos registradores lidos
 	reg [31:0] RF [31:0]; // 32 registradores cada um com 32 bits
+	initial begin
+		RF[17] = 3'b011;
+		RF[18] = 3'b010;
+	end
 	assign Data1 = RF[Read1];
 	assign Data2 = RF[Read2];
-	always begin
-	// escreve no registrador o novo valor se Regwrite for alto
-	@(posedge clock) if (RegWrite) RF[WriteReg] <= WriteData;
+	always @(posedge clock) begin
+	if (RegWrite) 
+		RF[WriteReg] <= WriteData;
 	end
 endmodule 
